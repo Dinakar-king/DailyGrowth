@@ -1,419 +1,465 @@
 import React, { useState, useContext } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { AuthContext } from "../context/AuthContext";
+import { useTheme } from "../context/ThemeContext";
+import { fetchWithAuth } from "../api";
 
 export default function Signup() {
-  const [formData, setFormData] = useState({ name: "", email: "", password: "", agree: false });
+  const [formData, setFormData] = useState({
+    name: "",
+    email: "",
+    password: "",
+  });
   const [showPassword, setShowPassword] = useState(false);
+  const [agreed, setAgreed] = useState(true);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+
   const { loginUser } = useContext(AuthContext);
+  const { colors, isDark } = useTheme();
   const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setError("");
-
-    if (!formData.agree) {
-      setError("Please accept the terms and conditions to continue.");
+    if (!agreed) {
+      setError("Please agree to the Terms of Service to continue.");
       return;
     }
-
+    setError("");
     setLoading(true);
 
     try {
-      const res = await fetch("http://localhost:5000/api/auth/signup", {
+      const data = await fetchWithAuth("/auth/register", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          name: formData.name,
-          email: formData.email,
-          password: formData.password,
-        }),
+        body: JSON.stringify(formData),
       });
-      const data = await res.json();
-
-      if (!res.ok) throw new Error(data.message || "Failed to create account");
 
       loginUser(data);
       navigate("/");
     } catch (err) {
-      setError(err.message);
+      setError(err.message || "Failed to create account. Please try again.");
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div style={styles.pageWrapper}>
-      <div style={styles.cardContainer}>
-        
-        {/* Left Form Section */}
-        <div style={styles.formSection}>
-          {/* Brand Header */}
-          <div style={styles.brandRow}>
-            <div style={styles.logoBadge}>
-              <span style={{ fontSize: "16px" }}>⚡</span>
-            </div>
-            <span style={styles.brandTitle}>DailyGrowth</span>
-          </div>
-
-          <div style={styles.headingGroup}>
-            <h1 style={styles.mainHeading}>Create Account</h1>
-            <p style={styles.subHeading}>Start your daily interview preparation journey.</p>
-          </div>
-
-          {error && <div style={styles.errorBanner}>{error}</div>}
-
-          <form onSubmit={handleSubmit} style={styles.form}>
-            {/* Full Name Field */}
-            <div style={styles.inputGroup}>
-              <label style={styles.label}>Full Name</label>
-              <input
-                type="text"
-                required
-                placeholder="e.g. Alex Carter"
-                value={formData.name}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                style={styles.input}
+    <div
+      style={{
+        minHeight: "calc(100vh - 64px)",
+        backgroundColor: colors.bg,
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        padding: "24px",
+        transition: "all 0.2s ease",
+      }}
+    >
+      <div
+        style={{
+          width: "100%",
+          maxWidth: "960px",
+          minHeight: "560px",
+          backgroundColor: colors.cardBg,
+          borderRadius: "28px",
+          border: `1px solid ${colors.border}`,
+          boxShadow: isDark
+            ? "0 25px 50px -12px rgba(0, 0, 0, 0.7)"
+            : "0 20px 40px -15px rgba(0, 0, 0, 0.08)",
+          display: "grid",
+          gridTemplateColumns: "repeat(auto-fit, minmax(340px, 1fr))",
+          overflow: "hidden",
+        }}
+      >
+        {/* Left Section - Form */}
+        <div
+          style={{
+            padding: "48px 44px",
+            display: "flex",
+            flexDirection: "column",
+            justifyContent: "space-between",
+          }}
+        >
+          <div>
+            <div
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: "8px",
+                marginBottom: "28px",
+              }}
+            >
+              <div
+                style={{
+                  width: "12px",
+                  height: "12px",
+                  borderRadius: "3px",
+                  backgroundColor: "#0284C7",
+                }}
               />
+              <span
+                style={{
+                  fontSize: "18px",
+                  fontWeight: "900",
+                  letterSpacing: "-0.5px",
+                  color: colors.textPrimary,
+                }}
+              >
+                Daily<span style={{ color: "#38BDF8" }}>Growth</span>
+              </span>
             </div>
 
-            {/* Email Field */}
-            <div style={styles.inputGroup}>
-              <label style={styles.label}>Email Address</label>
-              <input
-                type="email"
-                required
-                placeholder="name@domain.com"
-                value={formData.email}
-                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                style={styles.input}
-              />
-            </div>
+            <h1
+              style={{
+                fontSize: "30px",
+                fontWeight: "800",
+                color: colors.textPrimary,
+                margin: "0 0 8px",
+                letterSpacing: "-0.8px",
+              }}
+            >
+              Create Account
+            </h1>
+            <p
+              style={{
+                fontSize: "13px",
+                color: colors.textSecondary,
+                margin: "0 0 24px",
+              }}
+            >
+              Start your daily interview preparation journey.
+            </p>
 
-            {/* Password Field with Eye Toggle */}
-            <div style={styles.inputGroup}>
-              <label style={styles.label}>Password</label>
-              <div style={styles.passwordWrapper}>
-                <input
-                  type={showPassword ? "text" : "password"}
-                  required
-                  placeholder="Minimum 6 characters"
-                  value={formData.password}
-                  onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                  style={styles.passwordInput}
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  style={styles.eyeBtn}
-                  title={showPassword ? "Hide password" : "Show password"}
-                >
-                  {showPassword ? "👁️" : "🙈"}
-                </button>
+            {error && (
+              <div
+                style={{
+                  padding: "10px 14px",
+                  borderRadius: "10px",
+                  backgroundColor: "rgba(239, 68, 68, 0.12)",
+                  border: "1px solid #EF4444",
+                  color: "#EF4444",
+                  fontSize: "12px",
+                  fontWeight: "600",
+                  marginBottom: "18px",
+                }}
+              >
+                {error}
               </div>
-            </div>
+            )}
 
-            {/* Terms Agreement Checkbox */}
-            <div style={styles.optionsRow}>
-              <label style={styles.checkboxLabel}>
+            <form
+              onSubmit={handleSubmit}
+              style={{ display: "flex", flexDirection: "column", gap: "16px" }}
+            >
+              <div>
+                <label
+                  style={{
+                    display: "block",
+                    fontSize: "11px",
+                    fontWeight: "700",
+                    color: colors.textSecondary,
+                    textTransform: "uppercase",
+                    letterSpacing: "0.5px",
+                    marginBottom: "6px",
+                  }}
+                >
+                  Full Name
+                </label>
+                <input
+                  type="text"
+                  required
+                  placeholder="John Doe"
+                  value={formData.name}
+                  onChange={(e) =>
+                    setFormData({ ...formData, name: e.target.value })
+                  }
+                  style={{
+                    width: "100%",
+                    padding: "13px 16px",
+                    borderRadius: "12px",
+                    backgroundColor: colors.innerBg,
+                    border: `1.5px solid ${colors.inputBorder}`,
+                    color: colors.textPrimary,
+                    fontSize: "13px",
+                    outline: "none",
+                    boxSizing: "border-box",
+                  }}
+                />
+              </div>
+
+              <div>
+                <label
+                  style={{
+                    display: "block",
+                    fontSize: "11px",
+                    fontWeight: "700",
+                    color: colors.textSecondary,
+                    textTransform: "uppercase",
+                    letterSpacing: "0.5px",
+                    marginBottom: "6px",
+                  }}
+                >
+                  Email Address
+                </label>
+                <input
+                  type="email"
+                  required
+                  placeholder="candidate@example.com"
+                  value={formData.email}
+                  onChange={(e) =>
+                    setFormData({ ...formData, email: e.target.value })
+                  }
+                  style={{
+                    width: "100%",
+                    padding: "13px 16px",
+                    borderRadius: "12px",
+                    backgroundColor: colors.innerBg,
+                    border: `1.5px solid ${colors.inputBorder}`,
+                    color: colors.textPrimary,
+                    fontSize: "13px",
+                    outline: "none",
+                    boxSizing: "border-box",
+                  }}
+                />
+              </div>
+
+              <div>
+                <label
+                  style={{
+                    display: "block",
+                    fontSize: "11px",
+                    fontWeight: "700",
+                    color: colors.textSecondary,
+                    textTransform: "uppercase",
+                    letterSpacing: "0.5px",
+                    marginBottom: "6px",
+                  }}
+                >
+                  Password
+                </label>
+                <div style={{ position: "relative", width: "100%" }}>
+                  <input
+                    type={showPassword ? "text" : "password"}
+                    required
+                    placeholder="••••••••"
+                    value={formData.password}
+                    onChange={(e) =>
+                      setFormData({ ...formData, password: e.target.value })
+                    }
+                    style={{
+                      width: "100%",
+                      padding: "13px 44px 13px 16px",
+                      borderRadius: "12px",
+                      backgroundColor: colors.innerBg,
+                      border: `1.5px solid ${colors.inputBorder}`,
+                      color: colors.textPrimary,
+                      fontSize: "13px",
+                      outline: "none",
+                      boxSizing: "border-box",
+                    }}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    style={{
+                      position: "absolute",
+                      right: "12px",
+                      top: "50%",
+                      transform: "translateY(-50%)",
+                      background: "none",
+                      border: "none",
+                      cursor: "pointer",
+                      color: colors.textSecondary,
+                    }}
+                  >
+                    {showPassword ? (
+                      <svg
+                        width="18"
+                        height="18"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                      >
+                        <path d="M9.88 9.88a3 3 0 1 0 4.24 4.24" />
+                        <path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68" />
+                        <path d="M6.61 6.61A13.526 13.526 0 0 0 2 12s3 7 10 7a9.74 9.74 0 0 0 5.39-1.61" />
+                        <line x1="2" y1="2" x2="22" y2="22" />
+                      </svg>
+                    ) : (
+                      <svg
+                        width="18"
+                        height="18"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                      >
+                        <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z" />
+                        <circle cx="12" cy="12" r="3" />
+                      </svg>
+                    )}
+                  </button>
+                </div>
+              </div>
+
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  fontSize: "12px",
+                  color: colors.textSecondary,
+                  gap: "8px",
+                }}
+              >
                 <input
                   type="checkbox"
-                  checked={formData.agree}
-                  onChange={(e) => setFormData({ ...formData, agree: e.target.checked })}
-                  style={{ accentColor: "#0f766e" }}
+                  checked={agreed}
+                  onChange={(e) => setAgreed(e.target.checked)}
+                  style={{ accentColor: "#0284C7", cursor: "pointer" }}
                 />
-                I agree to the Terms of Service & Privacy Policy
-              </label>
-            </div>
+                <span>I agree to the Terms of Service & Privacy Policy</span>
+              </div>
 
-            {/* Buttons Row */}
-            <div style={styles.buttonRow}>
-              <button
-                type="submit"
-                disabled={loading}
-                style={{ ...styles.btnPrimary, opacity: loading ? 0.7 : 1 }}
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "1fr 1fr",
+                  gap: "12px",
+                  marginTop: "8px",
+                }}
               >
-                {loading ? "Creating Account..." : "Sign Up"}
-              </button>
+                <button
+                  type="submit"
+                  disabled={loading}
+                  style={{
+                    padding: "13px",
+                    borderRadius: "12px",
+                    backgroundColor: "#0284C7",
+                    backgroundImage:
+                      "linear-gradient(135deg, #0284C7, #0369A1)",
+                    color: "#FFFFFF",
+                    border: "none",
+                    fontWeight: "700",
+                    fontSize: "13px",
+                    cursor: "pointer",
+                  }}
+                >
+                  {loading ? "Creating..." : "Sign Up"}
+                </button>
 
-              <Link to="/login" style={styles.btnSecondary}>
-                Back to Login
-              </Link>
-            </div>
-          </form>
+                <button
+                  type="button"
+                  onClick={() => navigate("/login")}
+                  style={{
+                    padding: "13px",
+                    borderRadius: "12px",
+                    backgroundColor: "transparent",
+                    border: `1.5px solid ${colors.border}`,
+                    color: colors.textPrimary,
+                    fontWeight: "700",
+                    fontSize: "13px",
+                    cursor: "pointer",
+                  }}
+                >
+                  Back to Login
+                </button>
+              </div>
+            </form>
+          </div>
 
-          {/* Footer Note */}
-          <div style={styles.legalNotice}>
+          <p
+            style={{
+              fontSize: "11px",
+              color: colors.textSecondary,
+              marginTop: "24px",
+              lineHeight: "1.5",
+            }}
+          >
             Join thousands of students and developers leveling up their careers daily.
-          </div>
+          </p>
         </div>
 
-        {/* Right Art Section */}
-        <div style={styles.artSection}>
-          <div style={styles.glowOverlay} />
-          
-          <div style={styles.artContent}>
-            <div style={styles.streakBadge}>
-              <span style={{ fontSize: "38px" }}>🚀</span>
-              <h3 style={styles.artTitle}>Accelerate Growth</h3>
-              <p style={styles.artSub}>
-                Access tailored DSA tracks, aptitude drills, and an intelligent AI coach.
-              </p>
+        {/* Right Section - Highlight banner */}
+        <div
+          style={{
+            position: "relative",
+            background: isDark
+              ? "linear-gradient(135deg, #0f172a 0%, #0369a1 50%, #0f766e 100%)"
+              : "linear-gradient(135deg, #0284c7 0%, #06b6d4 50%, #10b981 100%)",
+            padding: "48px 36px",
+            display: "flex",
+            flexDirection: "column",
+            justifyContent: "space-between",
+            color: "#FFFFFF",
+            overflow: "hidden",
+          }}
+        >
+          <div style={{ zIndex: 1 }}>
+            <span
+              style={{
+                fontSize: "11px",
+                fontWeight: "800",
+                letterSpacing: "0.5px",
+                padding: "6px 14px",
+                borderRadius: "20px",
+                backgroundColor: "rgba(255, 255, 255, 0.18)",
+                backdropFilter: "blur(8px)",
+                border: "1px solid rgba(255, 255, 255, 0.25)",
+              }}
+            >
+              🚀 DAILY PLACEMENT DRILLS
+            </span>
+          </div>
+
+          <div style={{ zIndex: 1, margin: "32px 0" }}>
+            <h2
+              style={{
+                fontSize: "26px",
+                fontWeight: "900",
+                lineHeight: "1.3",
+                marginBottom: "12px",
+              }}
+            >
+              Accelerate Growth with Structured Practice
+            </h2>
+            <p
+              style={{
+                fontSize: "13px",
+                lineHeight: "1.6",
+                color: "rgba(255, 255, 255, 0.85)",
+                margin: 0,
+              }}
+            >
+              Access tailored DSA tracks, aptitude drills, audio verbal assessments, and daily SQL challenges.
+            </p>
+          </div>
+
+          <div
+            style={{
+              zIndex: 1,
+              backgroundColor: "rgba(255, 255, 255, 0.14)",
+              backdropFilter: "blur(12px)",
+              border: "1px solid rgba(255, 255, 255, 0.25)",
+              borderRadius: "16px",
+              padding: "16px 20px",
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+            }}
+          >
+            <div>
+              <div style={{ fontSize: "11px", fontWeight: "700", opacity: 0.85 }}>
+                INSTANT EVALUATION
+              </div>
+              <div style={{ fontSize: "14px", fontWeight: "800", marginTop: "2px" }}>
+                Continuous Streak Tracking
+              </div>
             </div>
-          </div>
-
-          <div style={styles.artControls}>
-            <span style={styles.pillBtn}>←</span>
-            <span style={{ ...styles.pillBtn, background: "#ffffff", color: "#064e3b" }}>1</span>
-            <span style={styles.pillBtn}>→</span>
+            <div style={{ fontSize: "24px" }}>🎯</div>
           </div>
         </div>
-
       </div>
     </div>
   );
 }
-
-const styles = {
-  pageWrapper: {
-    minHeight: "100vh",
-    width: "100%",
-    backgroundColor: "#FDF8F0",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    padding: "24px",
-    boxSizing: "border-box",
-    fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
-  },
-  cardContainer: {
-    display: "flex",
-    width: "100%",
-    maxWidth: "960px",
-    minHeight: "600px",
-    backgroundColor: "#ffffff",
-    borderRadius: "28px",
-    border: "2px solid #064E3B",
-    overflow: "hidden",
-    boxShadow: "0 25px 50px -12px rgba(6, 78, 59, 0.15)",
-  },
-  formSection: {
-    flex: "1 1 50%",
-    padding: "44px 48px",
-    display: "flex",
-    flexDirection: "column",
-    justifyContent: "space-between",
-    backgroundColor: "#ffffff",
-  },
-  brandRow: {
-    display: "flex",
-    alignItems: "center",
-    gap: "10px",
-  },
-  logoBadge: {
-    width: "32px",
-    height: "32px",
-    borderRadius: "8px",
-    backgroundColor: "#ecfdf5",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    border: "1px solid #a7f3d0",
-  },
-  brandTitle: {
-    fontSize: "18px",
-    fontWeight: "800",
-    color: "#0f172a",
-    letterSpacing: "-0.5px",
-  },
-  headingGroup: {
-    marginTop: "20px",
-    marginBottom: "16px",
-  },
-  mainHeading: {
-    fontSize: "28px",
-    fontWeight: "800",
-    color: "#1e1b4b",
-    margin: "0 0 4px 0",
-  },
-  subHeading: {
-    fontSize: "13px",
-    color: "#64748b",
-    margin: 0,
-  },
-  errorBanner: {
-    padding: "10px 14px",
-    backgroundColor: "#fef2f2",
-    border: "1px solid #fecaca",
-    borderRadius: "10px",
-    color: "#b91c1c",
-    fontSize: "12px",
-    marginBottom: "14px",
-  },
-  form: {
-    display: "flex",
-    flexDirection: "column",
-    gap: "14px",
-  },
-  inputGroup: {
-    display: "flex",
-    flexDirection: "column",
-    gap: "5px",
-  },
-  label: {
-    fontSize: "11px",
-    fontWeight: "600",
-    color: "#94a3b8",
-    textTransform: "capitalize",
-  },
-  input: {
-    padding: "12px 16px",
-    borderRadius: "12px",
-    border: "1.5px solid #cbd5e1",
-    backgroundColor: "#ffffff",
-    fontSize: "13px",
-    color: "#0f172a",
-    outline: "none",
-    boxSizing: "border-box",
-    width: "100%",
-  },
-  passwordWrapper: {
-    position: "relative",
-    display: "flex",
-    alignItems: "center",
-    width: "100%",
-  },
-  passwordInput: {
-    padding: "12px 42px 12px 16px",
-    borderRadius: "12px",
-    border: "1.5px solid #cbd5e1",
-    backgroundColor: "#ffffff",
-    fontSize: "13px",
-    color: "#0f172a",
-    outline: "none",
-    boxSizing: "border-box",
-    width: "100%",
-  },
-  eyeBtn: {
-    position: "absolute",
-    right: "12px",
-    background: "transparent",
-    border: "none",
-    cursor: "pointer",
-    fontSize: "16px",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    padding: 0,
-  },
-  optionsRow: {
-    display: "flex",
-    alignItems: "center",
-    fontSize: "12px",
-  },
-  checkboxLabel: {
-    display: "flex",
-    alignItems: "center",
-    gap: "6px",
-    color: "#64748b",
-    cursor: "pointer",
-    fontSize: "11px",
-  },
-  buttonRow: {
-    display: "flex",
-    gap: "12px",
-    marginTop: "8px",
-  },
-  btnPrimary: {
-    flex: 1,
-    padding: "12px",
-    backgroundColor: "#0d5c4d",
-    color: "#ffffff",
-    border: "none",
-    borderRadius: "12px",
-    fontSize: "13px",
-    fontWeight: "700",
-    cursor: "pointer",
-  },
-  btnSecondary: {
-    flex: 1,
-    padding: "12px",
-    backgroundColor: "#ffffff",
-    color: "#1e293b",
-    border: "1.5px solid #cbd5e1",
-    borderRadius: "12px",
-    fontSize: "13px",
-    fontWeight: "600",
-    textAlign: "center",
-    textDecoration: "none",
-    boxSizing: "border-box",
-  },
-  legalNotice: {
-    fontSize: "10px",
-    color: "#94a3b8",
-    marginTop: "18px",
-    lineHeight: "1.4",
-  },
-  artSection: {
-    flex: "1 1 50%",
-    position: "relative",
-    backgroundColor: "#064e3b",
-    backgroundImage: "radial-gradient(circle at top right, #047857 0%, #064e3b 60%, #022c22 100%)",
-    display: "flex",
-    flexDirection: "column",
-    justifyContent: "space-between",
-    padding: "36px",
-    boxSizing: "border-box",
-  },
-  glowOverlay: {
-    position: "absolute",
-    inset: 0,
-    backgroundImage: "radial-gradient(rgba(255,255,255,0.06) 1px, transparent 1px)",
-    backgroundSize: "18px 18px",
-  },
-  artContent: {
-    position: "relative",
-    zIndex: 2,
-    margin: "auto 0",
-    textAlign: "center",
-  },
-  streakBadge: {
-    backgroundColor: "rgba(2, 44, 34, 0.45)",
-    backdropFilter: "blur(12px)",
-    border: "1px solid rgba(255, 255, 255, 0.12)",
-    padding: "32px 24px",
-    borderRadius: "24px",
-    color: "#ffffff",
-  },
-  artTitle: {
-    fontSize: "22px",
-    fontWeight: "800",
-    marginTop: "12px",
-    marginBottom: "6px",
-    color: "#f0fdf4",
-  },
-  artSub: {
-    fontSize: "12px",
-    color: "#a7f3d0",
-    margin: 0,
-    lineHeight: "1.5",
-  },
-  artControls: {
-    position: "relative",
-    zIndex: 2,
-    display: "flex",
-    justifyContent: "flex-end",
-    gap: "6px",
-  },
-  pillBtn: {
-    padding: "6px 12px",
-    borderRadius: "8px",
-    backgroundColor: "rgba(255,255,255,0.12)",
-    color: "#ffffff",
-    fontSize: "11px",
-    fontWeight: "600",
-    cursor: "pointer",
-  },
-};
