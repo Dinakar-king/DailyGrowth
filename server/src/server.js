@@ -6,9 +6,10 @@ import { fileURLToPath } from "url";
 import dotenv from "dotenv";
 
 // Route Imports
-import authRoutes from "./routes/authRoutes.js";
-import examRoutes from "./routes/examRoutes.js";
-import adminRoutes from "./routes/adminRoutes.js";
+
+import authRoutes from "./routes/auth.routes.js";
+import examRoutes from "./routes/exam.routes.js";
+import adminRoutes from "./routes/admin.routes.js";
 
 dotenv.config();
 
