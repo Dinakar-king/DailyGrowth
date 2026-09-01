@@ -27,8 +27,12 @@
       "dest": "client/assets/$1"
     },
     {
+      "src": "/favicon.ico",
+      "dest": "client/favicon.ico"
+    },
+    {
       "src": "/(.*)",
-      "dest": "client/$1"
+      "dest": "client/index.html"
     }
   ]
 }
