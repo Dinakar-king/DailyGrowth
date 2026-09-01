@@ -1,13 +1,19 @@
-const express = require("express");
-const mongoose = require("mongoose");
-const cors = require("cors");
-const path = require("path");
-require("dotenv").config();
+import express from "express";
+import mongoose from "mongoose";
+import cors from "cors";
+import path from "path";
+import { fileURLToPath } from "url";
+import dotenv from "dotenv";
 
 // Route Imports
-const authRoutes = require("./routes/authRoutes");
-const examRoutes = require("./routes/examRoutes");
-const adminRoutes = require("./routes/adminRoutes");
+import authRoutes from "./routes/authRoutes.js";
+import examRoutes from "./routes/examRoutes.js";
+import adminRoutes from "./routes/adminRoutes.js";
+
+dotenv.config();
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const app = express();
 
@@ -16,10 +22,10 @@ app.use(cors({ origin: true, credentials: true }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Serve static uploads (audio files etc.)
+// Serve static uploads
 app.use("/uploads", express.static(path.join(__dirname, "../uploads")));
 
-// Connect to MongoDB Atlas
+// MongoDB Atlas Connection Handling
 const MONGO_URI =
   process.env.MONGO_URI || "mongodb://localhost:27017/dailygrowth";
 
@@ -27,10 +33,7 @@ let isConnected = false;
 const connectDB = async () => {
   if (isConnected) return;
   try {
-    const db = await mongoose.connect(MONGO_URI, {
-      useNewUrlParser: true,
-      useUnifiedTopology: true,
-    });
+    const db = await mongoose.connect(MONGO_URI);
     isConnected = db.connections[0].readyState === 1;
     console.log("MongoDB connected successfully");
   } catch (err) {
@@ -38,7 +41,6 @@ const connectDB = async () => {
   }
 };
 
-// Ensure DB is connected before handling requests
 app.use(async (req, res, next) => {
   await connectDB();
   next();
@@ -74,5 +76,5 @@ if (process.env.NODE_ENV !== "production") {
   });
 }
 
-// Export Express app for Vercel Serverless Function runtime
-module.exports = app;
+// Export default app for Vercel
+export default app;
