@@ -5,8 +5,6 @@ import path from "path";
 import { fileURLToPath } from "url";
 import dotenv from "dotenv";
 
-// Route Imports
-
 import authRoutes from "./routes/auth.routes.js";
 import examRoutes from "./routes/exam.routes.js";
 import adminRoutes from "./routes/admin.routes.js";
@@ -18,64 +16,76 @@ const __dirname = path.dirname(__filename);
 
 const app = express();
 
-// Middleware
 app.use(cors({ origin: true, credentials: true }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-
-// Serve static uploads
 app.use("/uploads", express.static(path.join(__dirname, "../uploads")));
 
-// MongoDB Atlas Connection Handling
-const MONGO_URI =
-  process.env.MONGO_URI || "mongodb://localhost:27017/dailygrowth";
+// Global cached connection across serverless invocations
+let cached = global.mongoose;
+if (!cached) {
+  cached = global.mongoose = { conn: null, promise: null };
+}
 
-let isConnected = false;
-const connectDB = async () => {
-  if (isConnected) return;
-  try {
-    const db = await mongoose.connect(MONGO_URI);
-    isConnected = db.connections[0].readyState === 1;
-    console.log("MongoDB connected successfully");
-  } catch (err) {
-    console.error("MongoDB Connection Failed:", err.message);
+async function connectDB() {
+  if (cached.conn) {
+    return cached.conn;
   }
-};
 
+  const MONGO_URI = process.env.MONGO_URI;
+  if (!MONGO_URI) {
+    throw new Error("MONGO_URI environment variable is not defined.");
+  }
+
+  if (!cached.promise) {
+    cached.promise = mongoose.connect(MONGO_URI, {
+      bufferCommands: false, // Prevents queries from buffering and timing out
+      serverSelectionTimeoutMS: 5000,
+    }).then((m) => m);
+  }
+
+  try {
+    cached.conn = await cached.promise;
+  } catch (e) {
+    cached.promise = null;
+    throw e;
+  }
+
+  return cached.conn;
+}
+
+// Middleware: Establish DB connection prior to running any API routes
 app.use(async (req, res, next) => {
-  await connectDB();
-  next();
+  try {
+    await connectDB();
+    next();
+  } catch (err) {
+    console.error("Database connection failure:", err.message);
+    res.status(500).json({ message: "Database connection failed. Please check network access and credentials." });
+  }
 });
 
-// API Routes
+// Routes
 app.use("/api/auth", authRoutes);
 app.use("/api/exam", examRoutes);
 app.use("/api/admin", adminRoutes);
 
-// Health check endpoint
 app.get("/api/health", (req, res) => {
   res.json({
     status: "ok",
-    environment: process.env.NODE_ENV || "development",
+    dbState: mongoose.connection.readyState, // 1 = connected
     timestamp: new Date().toISOString(),
   });
 });
 
-// Error handling middleware
 app.use((err, req, res, next) => {
   console.error("Server Error:", err);
-  res.status(err.status || 500).json({
-    message: err.message || "Internal Server Error",
-  });
+  res.status(err.status || 500).json({ message: err.message || "Internal Server Error" });
 });
 
-// Local development listener
 const PORT = process.env.PORT || 5000;
 if (process.env.NODE_ENV !== "production") {
-  app.listen(PORT, () => {
-    console.log(`Server running locally on port ${PORT}`);
-  });
+  app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
 }
 
-// Export default app for Vercel
 export default app;
